@@ -1,43 +1,57 @@
-# Astro Starter Kit: Basics
 
-```sh
-npm create astro@latest -- --template basics
-```
+# PrompTune: Generador de Playlists Inteligente
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+PrompTune es una aplicación web construida con Astro y React que genera playlists de YouTube basadas en prompts de usuario, géneros, artistas o estados de ánimo. Utiliza IA (Gemini) para interpretar el prompt y APIs externas para obtener resultados musicales relevantes.
 
-## 🚀 Project Structure
+## 🚀 Características principales
 
-Inside of your Astro project, you'll see the following folders and files:
+- Generación de playlists a partir de descripciones, géneros, artistas o moods.
+- Campo opcional para especificar artista y filtrar por canal oficial.
+- Integración con Gemini para extraer artistas, canciones y géneros del prompt.
+- Búsqueda avanzada en YouTube con ranking de resultados.
+- Seguridad: las API keys se gestionan mediante variables de entorno y no se exponen en el repositorio.
+
+## 📦 Estructura del proyecto
 
 ```text
-/
+/ (raíz)
 ├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
+├── src/
+│   ├── assets/
+│   ├── components/
+│   ├── db/
+│   ├── layouts/
+│   ├── lib/
+│   ├── pages/
+│   ├── services/
+│   └── styles/
+├── .env (no se sube a git)
+├── .gitignore
+├── package.json
+├── tsconfig.json
+└── README.md
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
 
-## 🧞 Commands
+## 🧑‍💻 Uso
 
-All commands are run from the root of the project, from a terminal:
+1. Escribe un género, mood o descripción en el primer campo.
+2. (Opcional) Especifica un artista para filtrar por su canal oficial.
+3. Selecciona la cantidad de canciones y haz clic en "Generar Playlist".
+4. Se mostrarán los videos de YouTube más relevantes según tu prompt.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
+## 📝 Scripts útiles
+
+| Comando              | Acción                                         |
+|----------------------|-----------------------------------------------|
+| `npm install`        | Instala dependencias                          |
+| `npm run dev`        | Inicia el servidor local en `localhost:4321`  |
+| `npm run build`      | Compila el sitio para producción en `./dist/` |
+| `npm run preview`    | Previsualiza el build localmente              |
+
+---
+
+Desarrollado con Astro, React y mucho ritmo 🎵
 | `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
 | `npm run astro -- --help` | Get help using the Astro CLI                     |
 

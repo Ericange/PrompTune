@@ -1,3 +1,6 @@
+# API Keys y variables de entorno
+.env
+.env.*
 # build output
 dist/
 
