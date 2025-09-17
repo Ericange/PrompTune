@@ -1,0 +1,122 @@
+import React, { useEffect, useRef, useState } from 'react';
+
+export default function YouTubePlayerWithEnd({ videoId, onEnd }) {
+    // Creamos un nuevo componente desde cero para evitar los problemas
+    const containerRef = useRef(null);
+    const playerRef = useRef(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isError, setIsError] = useState(false);
+    
+    // Efecto para cargar la API de YouTube
+    useEffect(() => {
+        // Solo cargar si no existe
+        if (!window.YT && !document.getElementById('youtube-api')) {
+            const tag = document.createElement('script');
+            tag.id = 'youtube-api';
+            tag.src = 'https://www.youtube.com/iframe_api';
+            
+            // Usar first-script tag para mayor compatibilidad
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+    }, []);
+    
+    // Efecto para manejar el player
+    useEffect(() => {
+        if (!videoId || !containerRef.current) return;
+        
+        // Flag para evitar actualizar estado después de desmontar
+        let isMounted = true;
+        setIsLoading(true);
+        setIsError(false);
+        
+        const createPlayer = () => {
+            // Limpiar player anterior si existe
+            if (playerRef.current) {
+                try {
+                    playerRef.current.destroy();
+                } catch (e) {}
+                playerRef.current = null;
+            }
+            
+            try {
+                playerRef.current = new window.YT.Player(containerRef.current, {
+                    videoId,
+                    height: '100%',
+                    width: '100%',
+                    playerVars: {
+                        autoplay: 1,
+                        controls: 1,
+                        modestbranding: 1,
+                        rel: 0,
+                    },
+                    events: {
+                        onReady: () => {
+                            if (isMounted) setIsLoading(false);
+                        },
+                        onStateChange: (e) => {
+                            // 0 = ended
+                            if (e.data === 0 && onEnd) onEnd();
+                        },
+                        onError: () => {
+                            if (isMounted) {
+                                setIsError(true);
+                                setIsLoading(false);
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('Error creating YouTube player:', e);
+                if (isMounted) {
+                    setIsError(true);
+                    setIsLoading(false);
+                }
+            }
+        };
+        
+        // Si YT ya está disponible, crear player
+        if (window.YT && window.YT.Player) {
+            createPlayer();
+        } else {
+            // Si no, esperar a que se cargue
+            const originalCallback = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = function() {
+                if (originalCallback) originalCallback();
+                createPlayer();
+            };
+        }
+        
+        // Cleanup function
+        return () => {
+            isMounted = false;
+            if (playerRef.current) {
+                try {
+                    playerRef.current.destroy();
+                } catch (e) {}
+                playerRef.current = null;
+            }
+        };
+    }, [videoId, onEnd]);
+    
+    return (
+        <div className="w-full h-full relative">
+            {/* Contenedor para el player de YouTube */}
+            <div ref={containerRef} className="w-full h-full min-h-[350px]"></div>
+            
+            {/* Estado de carga */}
+            {isLoading && !isError && (
+                <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+                    <div className="text-white animate-pulse">Cargando video...</div>
+                </div>
+            )}
+            
+            {/* Estado de error */}
+            {isError && (
+                <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+                    <div className="text-red-500">Error al cargar el video</div>
+                </div>
+            )}
+        </div>
+    );
+}
