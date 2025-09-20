@@ -37,8 +37,8 @@ export async function searchTracks(keywords, artist = '', options = {}) {
         channelId = await getArtistChannelId(artist);
     }
     for (const keyword of keywords) {
-        let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${encodeURIComponent(keyword)}&key=${YOUTUBE_API_KEY}`;
-        url += `&order=${options.order || 'relevance'}&videoCategoryId=10&type=video`;
+        let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=8&q=${encodeURIComponent(keyword)}&key=${YOUTUBE_API_KEY}`;
+        url += `&order=${options.order || 'relevance'}&videoCategoryId=10&type=video&videoDuration=medium`;
         if (channelId) {
             url += `&channelId=${channelId}`;
         }
@@ -60,23 +60,90 @@ export async function searchTracks(keywords, artist = '', options = {}) {
             // Si falla, ignora ese keyword
         }
     }
-    // Ranking interno
+    // Ranking interno mejorado
     function score(track) {
         let s = 0;
-        if (artist && track.channelTitle && (track.channelTitle.toLowerCase().includes(artist.toLowerCase()) || track.channelTitle.toLowerCase().includes('topic'))) s += 3;
-        if (keywords.some(k => track.title.toLowerCase().includes(k.toLowerCase()))) s += 2;
-        if (/official (video|audio)/i.test(track.title)) s += 1;
+        const titleLower = track.title.toLowerCase();
+        const channelLower = track.channelTitle.toLowerCase();
+
+        // Puntuación por canal oficial o Topic
+        if (artist && (channelLower.includes(artist.toLowerCase()) || channelLower.includes('topic'))) s += 5;
+        if (channelLower.includes('vevo') || channelLower.includes('official')) s += 3;
+
+        // Puntuación por keywords en el título
+        for (const keyword of keywords) {
+            const keywordLower = keyword.toLowerCase();
+            if (titleLower.includes(keywordLower)) s += 4;
+
+            // Buscar palabras individuales del keyword
+            const words = keywordLower.split(' ').filter(w => w.length > 2);
+            for (const word of words) {
+                if (titleLower.includes(word)) s += 1;
+            }
+        }
+
+        // Puntuación por indicadores de calidad
+        if (/official (video|audio|music video)/i.test(track.title)) s += 3;
+        if (/\bhd\b|\b4k\b|official/i.test(track.title)) s += 2;
+        if (/(live|concert|performance)/i.test(track.title)) s += 1;
+
+        // Penalización por contenido no deseado
+        if (/(cover|remix|karaoke|instrumental|reaction)/i.test(track.title)) s -= 2;
+        if (/(lyric|letra)/i.test(track.title) && !/official/i.test(track.title)) s -= 1;
+
         return s;
     }
     allTracks.sort((a, b) => score(b) - score(a));
-    // Eliminar duplicados por url
+
+    // Sistema de deduplicación avanzado para asegurar variedad
     const unique = [];
-    const seen = new Set();
-    for (const t of allTracks) {
-        if (!seen.has(t.url)) {
-            unique.push(t.url);
-            seen.add(t.url);
-        }
+    const seenUrls = new Set();
+    const seenTitles = new Set();
+    const artistTrackCount = new Map();
+
+    // Función para normalizar títulos y detectar similitudes
+    function normalizeTitle(title) {
+        return title
+            .toLowerCase()
+            .replace(/[\(\)\[\]]/g, '') // Remover paréntesis y corchetes
+            .replace(/official|music|video|audio|hd|4k/gi, '') // Remover palabras comunes
+            .replace(/\s+/g, ' ') // Normalizar espacios
+            .trim();
     }
+
+    // Función para extraer artista del título
+    function extractArtist(title) {
+        const match = title.match(/^([^-]+)/);
+        return match ? match[1].trim().toLowerCase() : '';
+    }
+
+    for (const track of allTracks) {
+        // Skip si ya vimos esta URL exacta
+        if (seenUrls.has(track.url)) continue;
+
+        const normalizedTitle = normalizeTitle(track.title);
+        const artist = extractArtist(track.title);
+
+        // Skip si ya vimos un título muy similar
+        let isSimilar = false;
+        for (const seenTitle of seenTitles) {
+            if (normalizedTitle.includes(seenTitle) || seenTitle.includes(normalizedTitle)) {
+                isSimilar = true;
+                break;
+            }
+        }
+        if (isSimilar) continue;
+
+        // Limitar canciones por artista para asegurar diversidad
+        const currentArtistCount = artistTrackCount.get(artist) || 0;
+        if (currentArtistCount >= 2) continue; // Máximo 2 canciones por artista
+
+        // Agregar a la lista final
+        unique.push(track);
+        seenUrls.add(track.url);
+        seenTitles.add(normalizedTitle);
+        artistTrackCount.set(artist, currentArtistCount + 1);
+    }
+
     return unique;
 }

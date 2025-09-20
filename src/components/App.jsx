@@ -64,7 +64,8 @@ export default function App() {
         return (index + 1).toString().padStart(2, '0');
     }
 
-    const currentUrl = tracks[currentIdx];
+    const currentTrack = tracks[currentIdx];
+    const currentUrl = currentTrack?.url;
     const currentVideoId = extractVideoId(currentUrl);
     const queue = tracks.slice(currentIdx + 1);
 
@@ -139,15 +140,17 @@ export default function App() {
                             {/* Player Container con Glow Effect */}
                             <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-3xl transform group-hover:bg-blue-500/30 transition-all duration-500"></div>
 
-                            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-neutral-800/50 bg-black w-full max-w-2xl aspect-video">
+                            <div className="relative rounded-3xl shadow-2xl border border-neutral-800/50 bg-black w-full max-w-2xl aspect-video">
                                 {currentVideoId ? (
-                                    <YouTubePlayerWithEnd
-                                        key={`player-${currentVideoId}`}
-                                        videoId={currentVideoId}
-                                        onEnd={handleNext}
-                                    />
+                                    <div className="w-full h-full rounded-3xl overflow-hidden">
+                                        <YouTubePlayerWithEnd
+                                            key={`player-${currentVideoId}`}
+                                            videoId={currentVideoId}
+                                            onEnd={handleNext}
+                                        />
+                                    </div>
                                 ) : (
-                                    <div className="h-full flex items-center justify-center bg-neutral-900">
+                                    <div className="h-full flex items-center justify-center bg-neutral-900 rounded-3xl">
                                         <div className="text-neutral-400 text-center w-full p-6">
                                             {tracks.length > 0
                                                 ? "No se pudo extraer el ID del video de YouTube."
@@ -157,11 +160,11 @@ export default function App() {
                                 )}
                             </div>
 
-                            {/* Track Info Overlay */}
-                            <div className="absolute left-0 right-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 rounded-b-3xl">
+                            {/* Track Info Overlay - No interfiere con controles */}
+                            <div className="absolute left-0 right-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 rounded-b-3xl pointer-events-none">
                                 <div className="text-white font-medium truncate">
-                                    {currentUrl ? (
-                                        <span>#{getTrackNumber(currentIdx)} {currentUrl.split('=').pop()}</span>
+                                    {currentTrack ? (
+                                        <span>#{getTrackNumber(currentIdx)} {currentTrack.title}</span>
                                     ) : ''}
                                 </div>
                             </div>
@@ -216,7 +219,7 @@ export default function App() {
                     </div>
 
                     {/* PLAYLIST CONTAINER */}
-                    <div className="w-full xl:w-96 bg-neutral-900/70 backdrop-blur-md rounded-3xl shadow-xl border border-neutral-800/50 p-6 flex flex-col gap-4">
+                    <div className="w-full xl:w-[480px] bg-neutral-900/70 backdrop-blur-md rounded-3xl shadow-xl border border-neutral-800/50 p-6 flex flex-col gap-4">
                         <div className="flex items-center justify-between mb-2">
                             <h2 className="text-white text-xl font-semibold">Playlist</h2>
                             <div className="flex items-center gap-1 text-blue-400 text-xs bg-blue-500/10 px-3 py-1 rounded-full">
@@ -228,17 +231,17 @@ export default function App() {
                         </div>
 
                         {/* Lista actual + cola */}
-                        <div className="overflow-y-auto max-h-[500px] pr-2 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-neutral-900">
+                        <div className="overflow-y-auto max-h-[600px] pr-2 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-neutral-900">
                             <div className="space-y-1">
-                                {tracks.map((url, idx) => {
+                                {tracks.map((track, idx) => {
                                     const isCurrentTrack = idx === currentIdx;
 
                                     return (
                                         <div
-                                            key={`${url}-${idx}`}
-                                            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 ${isCurrentTrack
-                                                    ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30'
-                                                    : 'hover:bg-neutral-800/70 border border-transparent'
+                                            key={`${track.url}-${idx}`}
+                                            className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 ${isCurrentTrack
+                                                ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30'
+                                                : 'hover:bg-neutral-800/70 border border-transparent'
                                                 }`}
                                             onClick={() => setCurrentIdx(idx)}
                                         >
@@ -254,9 +257,14 @@ export default function App() {
                                             </div>
 
                                             <div className="flex-1 min-w-0">
-                                                <div className={`truncate ${isCurrentTrack ? 'text-white font-medium' : 'text-neutral-300'}`}>
-                                                    {url.split('=').pop()}
+                                                <div className={`line-clamp-2 leading-tight ${isCurrentTrack ? 'text-white font-medium' : 'text-neutral-300'}`}>
+                                                    {track.title}
                                                 </div>
+                                                {track.channelTitle && (
+                                                    <div className="text-xs text-neutral-500 truncate mt-1">
+                                                        {track.channelTitle}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     );

@@ -23,6 +23,21 @@ export async function POST({ request }) {
     if (!prompt && !artist) {
         return new Response(JSON.stringify({ tracks: [], error: 'Prompt y artista vacíos o inválidos' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
+
+    // 🎵 Easter Egg: Palabra secreta "Exitoso" → Solo Peso Pluma
+    if (prompt.trim() === 'Exitoso') {
+        console.log('🎵 Easter Egg activado: Exitoso → Peso Pluma');
+        const pesoPlumaTracks = await searchTracks(
+            ['Peso Pluma official music video', 'Peso Pluma corridos tumbados', 'Peso Pluma El Belicon'],
+            'Peso Pluma',
+            { order: 'relevance' }
+        );
+        return new Response(
+            JSON.stringify({ tracks: pesoPlumaTracks.slice(0, count) }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+    }
+
     let keywords = [];
     let tracks = [];
     // Preprocesamiento del prompt
@@ -48,25 +63,79 @@ export async function POST({ request }) {
         console.log('Prompt recibido:', prompt);
         console.log('Gemini estructurado:', gemini);
         let searchKeywords = [];
-        if (gemini.artists && gemini.artists.length > 0) searchKeywords.push(...gemini.artists.map(a => a + ' official music video'));
-        if (gemini.songs && gemini.songs.length > 0) searchKeywords.push(...gemini.songs.map(s => s + ' official music video'));
-        if (searchKeywords.length === 0 && gemini.genres && gemini.genres.length > 0) {
-            searchKeywords.push(...gemini.genres.map(g => g + ' official music video'));
+
+        // Estrategia de diversidad: alternar entre artistas, canciones y géneros
+
+        // 1. Agregar artistas principales (máximo 3 para evitar saturación)
+        if (gemini.artists && gemini.artists.length > 0) {
+            searchKeywords.push(...gemini.artists.slice(0, 3).map(a => `${a} official music video`));
         }
+
+        // 2. Agregar canciones específicas para más variedad
+        if (gemini.songs && gemini.songs.length > 0) {
+            searchKeywords.push(...gemini.songs.slice(0, 3).map(s => `${s} official video`));
+        }
+
+        // 3. Combinar artistas con géneros (solo si tenemos pocos resultados)
+        if (searchKeywords.length < count && gemini.artists && gemini.genres) {
+            for (const artist of gemini.artists.slice(0, 2)) {
+                for (const genre of gemini.genres.slice(0, 1)) {
+                    searchKeywords.push(`${artist} ${genre} official`);
+                }
+            }
+        }
+
+        // 4. Búsquedas por género para llenar espacios restantes
+        if (searchKeywords.length < count && gemini.genres && gemini.genres.length > 0) {
+            for (const genre of gemini.genres) {
+                searchKeywords.push(`${genre} best songs`);
+                searchKeywords.push(`top ${genre} music`);
+            }
+        }
+
         if (searchKeywords.length === 0) {
-            // Fallback: prompt + music
+            // Fallback: prompt + music más específico
             let promptMusic = prompt.trim();
             if (!/music/i.test(promptMusic)) {
-                promptMusic += ' music';
+                promptMusic += ' official music';
             }
-            searchKeywords = [promptMusic];
+            searchKeywords = [promptMusic, `best of ${promptMusic}`];
         }
-        // Limitar la cantidad de keywords a la cantidad solicitada
-        keywords = searchKeywords.slice(0, count);
-        // 2. Buscar tracks en YouTube usando esas keywords
-        tracks = await searchTracks(keywords, '', { order: 'viewCount' });
-        // Limitar la cantidad de tracks a la cantidad solicitada
-        tracks = tracks.slice(0, count);
+
+        // Limitar keywords pero asegurar variedad
+        keywords = [...new Set(searchKeywords)].slice(0, Math.min(count * 3, 12)); // Más keywords para más opciones
+
+        // 2. Buscar tracks en YouTube usando relevancia en lugar de viewCount
+        tracks = await searchTracks(keywords, '', { order: 'relevance' });
+
+        // 3. Aplicar filtro final de diversidad y limite exacto
+        const finalTracks = [];
+        const seenArtists = new Set();
+        const maxPerArtist = Math.max(1, Math.floor(count / 3)); // Distribuir equitativamente
+
+        for (const track of tracks) {
+            if (finalTracks.length >= count) break;
+
+            const artist = track.title.split('-')[0]?.trim().toLowerCase() || '';
+            const artistCount = Array.from(seenArtists).filter(a => a === artist).length;
+
+            if (artistCount < maxPerArtist) {
+                finalTracks.push(track);
+                seenArtists.add(artist);
+            }
+        }
+
+        // Si no tenemos suficientes, llenar con los mejores ranked restantes
+        if (finalTracks.length < count) {
+            for (const track of tracks) {
+                if (finalTracks.length >= count) break;
+                if (!finalTracks.some(t => t.url === track.url)) {
+                    finalTracks.push(track);
+                }
+            }
+        }
+
+        tracks = finalTracks.slice(0, count);
         console.log('Tracks YouTube:', tracks);
     }
     // 3. Retornar la lista de tracks exacta

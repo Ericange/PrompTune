@@ -26,7 +26,15 @@ export async function getKeywordsFromPrompt(prompt) {
     const body = {
         contents: [{
             parts: [{
-                text: `Extrae una lista de hasta 10 artistas, canciones y géneros musicales reales que correspondan a este prompt: "${prompt}". Devuelve un JSON con la forma { "artists": ["..."], "songs": ["..."], "genres": ["..."] }. Si no hay coincidencias, devuelve solo géneros musicales. No incluyas explicaciones ni texto adicional.`
+                text: `Extrae una lista VARIADA de hasta 10 artistas DIFERENTES, canciones y géneros musicales reales que correspondan a este prompt: "${prompt}". 
+
+IMPORTANTE: 
+- Prioriza DIVERSIDAD de artistas (no repetir el mismo artista)
+- Incluye artistas de diferentes épocas y estilos dentro del género
+- Asegúrate de que sean canciones reales y populares
+- Si es un género específico, incluye varios artistas representativos
+
+Devuelve un JSON con la forma { "artists": ["..."], "songs": ["..."], "genres": ["..."] }. Si no hay coincidencias, devuelve solo géneros musicales. No incluyas explicaciones ni texto adicional.`
             }]
         }]
     };
