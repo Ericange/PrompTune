@@ -7,12 +7,13 @@ export default function InputPrompt({ onSubmit, horizontalOnDesktop }) {
     const [prompt, setPrompt] = useState('');
     const [artist, setArtist] = useState('');
     const [count, setCount] = useState(5);
+    const [allowDuplicateArtists, setAllowDuplicateArtists] = useState(false);
     const [focus, setFocus] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (prompt.trim() || artist.trim()) {
-            onSubmit({ prompt, artist, count });
+            onSubmit({ prompt, artist, count, allowDuplicateArtists });
         }
     };
 
@@ -42,6 +43,35 @@ export default function InputPrompt({ onSubmit, horizontalOnDesktop }) {
                     onBlur={() => setFocus(false)}
                 />
                 <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 rounded-full ${focus ? 'w-[95%] opacity-100' : 'w-0 opacity-0'}`}></div>
+            </div>
+
+            {/* Toggle para diversidad de artistas */}
+            <div className="w-full md:w-auto flex items-center justify-center md:justify-start gap-3 px-2">
+                <label className={`flex items-center gap-2 cursor-pointer text-sm transition-colors duration-200 ${artist.trim() ? 'text-neutral-500 cursor-not-allowed' : 'text-neutral-300 hover:text-white'
+                    }`}>
+                    <div className="relative">
+                        <input
+                            type="checkbox"
+                            className="sr-only"
+                            checked={allowDuplicateArtists}
+                            onChange={(e) => setAllowDuplicateArtists(e.target.checked)}
+                            disabled={artist.trim() !== ''}
+                        />
+                        <div className={`w-10 h-6 rounded-full transition-all duration-300 ${artist.trim()
+                                ? 'bg-neutral-600 opacity-50'
+                                : allowDuplicateArtists ? 'bg-blue-500' : 'bg-neutral-600'
+                            }`}>
+                            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-300 transform ${allowDuplicateArtists ? 'translate-x-5' : 'translate-x-1'
+                                } mt-1 ${artist.trim() ? 'opacity-70' : ''}`}></div>
+                        </div>
+                    </div>
+                    <span className="select-none">
+                        {artist.trim()
+                            ? 'Se permiten repetidos (artista específico)'
+                            : allowDuplicateArtists ? 'Permitir artistas repetidos' : 'Solo artistas únicos'
+                        }
+                    </span>
+                </label>
             </div>
 
             <div className="md:flex-shrink-0">
