@@ -32,10 +32,10 @@ export async function POST({ request }) {
         const pesoPlumaTracks = await searchTracks(
             ['Peso Pluma official music video', 'Peso Pluma corridos tumbados', 'Peso Pluma El Belicon'],
             'Peso Pluma',
-            { order: 'relevance', allowDuplicateArtists: true } // Easter egg siempre permite duplicados
+            { order: 'relevance', allowDuplicateArtists: true, maxTracks: count } // Easter egg siempre permite duplicados
         );
         return new Response(
-            JSON.stringify({ tracks: pesoPlumaTracks.slice(0, count) }),
+            JSON.stringify({ tracks: pesoPlumaTracks }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
     }
@@ -49,18 +49,18 @@ export async function POST({ request }) {
     const promptNorm = normalize(prompt);
     if (artist) {
         // Búsqueda simple por artista como funcionaba antes
-        // Si hay artista, buscar en el canal oficial o Topic
-        keywords = [artist + ' official music video'];
-        tracks = await searchTracks(keywords, artist, { order: 'viewCount' });
+        // Búsqueda mejorada por artista con múltiples keywords para obtener más variedad
+        keywords = [
+            artist + ' official music video',
+            artist + ' best songs',
+            artist + ' hits',
+            artist,
+            artist + ' popular'
+        ];
+        tracks = await searchTracks(keywords, artist, { order: 'viewCount', maxTracks: count });
         console.log('Búsqueda inicial tracks encontrados:', tracks.length);
-        if (tracks.length === 0) {
-            // Si no hay resultados, buscar solo por el nombre del artista
-            keywords = [artist];
-            tracks = await searchTracks(keywords, artist, { order: 'viewCount' });
-            console.log('Búsqueda fallback tracks encontrados:', tracks.length);
-        }
-        // Limitar la cantidad de tracks a la cantidad solicitada
-        tracks = tracks.slice(0, count);
+
+        // El límite ya se maneja en searchTracks
         console.log('Búsqueda por artista:', artist, 'Keywords:', keywords, 'Tracks finales:', tracks.length);
     } else {
         // 1. Obtener keywords estructuradas desde Gemini, pasando el count
@@ -114,10 +114,9 @@ export async function POST({ request }) {
 
         // 2. Buscar tracks en YouTube usando relevancia
         // Para búsquedas por género/prompt general, usar la configuración del usuario
-        tracks = await searchTracks(keywords, '', { order: 'relevance', allowDuplicateArtists });
+        tracks = await searchTracks(keywords, '', { order: 'relevance', allowDuplicateArtists, maxTracks: count });
 
-        // 3. Tomar exactamente el número solicitado (ya filtrado por diversidad en YouTube service)
-        tracks = tracks.slice(0, count);
+        // El límite ya se maneja en searchTracks
         console.log('Tracks YouTube:', tracks);
     }
     // 3. Retornar la lista de tracks exacta

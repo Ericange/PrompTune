@@ -34,7 +34,7 @@ export async function searchTracks(keywords, artist = '', options = {}) {
     // Si se especifica un artista, por defecto permitir duplicados
     // Si no se especifica artista (búsqueda por género), por defecto no permitir duplicados
     const defaultAllowDuplicates = artist ? true : false;
-    const { allowDuplicateArtists = defaultAllowDuplicates } = options;
+    const { allowDuplicateArtists = defaultAllowDuplicates, maxTracks = 5 } = options;
     const allTracks = [];
     let channelId = undefined;
     if (artist) {
@@ -168,7 +168,12 @@ export async function searchTracks(keywords, artist = '', options = {}) {
     }
 
     // Función mejorada para extraer artista del título o canal
-    function extractArtist(track) {
+    function extractArtist(track, searchArtist = '') {
+        // Si estamos buscando un artista específico, usar ese nombre para todas las canciones
+        if (searchArtist && searchArtist.trim()) {
+            return searchArtist.toLowerCase().trim();
+        }
+
         let artist = '';
 
         // Priorizar el canal del artista si es oficial
@@ -204,7 +209,7 @@ export async function searchTracks(keywords, artist = '', options = {}) {
             if (seenUrls.has(track.url)) continue;
 
             const normalizedTitle = normalizeTitle(track.title);
-            const artist = extractArtist(track);
+            const artistExtracted = extractArtist(track, artist); // Pasar el artista de búsqueda
 
             // Skip si ya vimos un título muy similar
             let isSimilar = false;
@@ -217,27 +222,37 @@ export async function searchTracks(keywords, artist = '', options = {}) {
             if (isSimilar) continue;
 
             // Permitir múltiples canciones por artista si allowDuplicateArtists es true
-            // Para búsquedas por artista específico, permitir más canciones del mismo artista
-            const maxTracksPerArtist = allowDuplicateArtists ? 5 : 1;
-            const currentArtistCount = artistTrackCount.get(artist) || 0;
+            // Para búsquedas por artista específico, permitir exactamente el número solicitado
+            const maxTracksPerArtist = allowDuplicateArtists ? maxTracks : 1;
+            const currentArtistCount = artistTrackCount.get(artistExtracted) || 0;
             if (currentArtistCount >= maxTracksPerArtist) continue;
 
             // Agregar a la lista final
             unique.push(track);
             seenUrls.add(track.url);
             seenTitles.add(normalizedTitle);
-            artistTrackCount.set(artist, currentArtistCount + 1);
+            artistTrackCount.set(artistExtracted, currentArtistCount + 1);
 
             // Si no permitimos artistas duplicados, solo tomar el mejor track de cada keyword
-            // Si permitimos duplicados, tomar hasta 3 tracks por keyword para búsquedas por artista
-            const maxTracksPerKeyword = allowDuplicateArtists ? 3 : 1;
+            // Si permitimos duplicados, calcular cuántos tracks por keyword necesitamos
+            const maxTracksPerKeyword = allowDuplicateArtists ? Math.ceil(maxTracks / keywords.length) : 1;
             const tracksFromThisKeyword = unique.filter(t => t.keyword === keyword).length;
             if (tracksFromThisKeyword >= maxTracksPerKeyword) {
                 break;
             }
+
+            // Parar si ya tenemos suficientes tracks
+            if (unique.length >= maxTracks) {
+                break;
+            }
+        }
+
+        // Salir del loop principal si ya tenemos suficientes tracks
+        if (unique.length >= maxTracks) {
+            break;
         }
     }
 
-    console.log(`searchTracks final result: ${unique.length} tracks, allowDuplicateArtists: ${allowDuplicateArtists}`);
-    return unique;
+    console.log(`searchTracks final result: ${unique.length} tracks, allowDuplicateArtists: ${allowDuplicateArtists}, maxTracks: ${maxTracks}`);
+    return unique.slice(0, maxTracks);
 }
