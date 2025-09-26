@@ -1,5 +1,5 @@
 // Componente: InputPrompt.jsx
-// Descripción: Input para que el usuario escriba el prompt y botón para generar playlist
+// Descripción: Input moderno y minimalista para generar playlist
 
 import React, { useState } from 'react';
 
@@ -8,7 +8,7 @@ export default function InputPrompt({ onSubmit, horizontalOnDesktop }) {
     const [artist, setArtist] = useState('');
     const [count, setCount] = useState(5);
     const [allowDuplicateArtists, setAllowDuplicateArtists] = useState(false);
-    const [focus, setFocus] = useState(false);
+    const [activeField, setActiveField] = useState('');
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -18,89 +18,119 @@ export default function InputPrompt({ onSubmit, horizontalOnDesktop }) {
     };
 
     return (
-        <form onSubmit={handleSubmit} className={`w-full ${horizontalOnDesktop ? 'flex flex-col md:flex-row gap-4 mb-4' : 'flex flex-col gap-4 mb-4'}`}>
-            <div className="relative flex-1 min-w-[180px] group">
-                <input
-                    type="text"
-                    className="w-full bg-neutral-800/80 text-white placeholder-neutral-400 border-2 border-neutral-700/80 rounded-xl px-5 py-3.5 focus:outline-none focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 shadow-inner"
-                    placeholder="Género o vibra musical..."
-                    value={prompt}
-                    onChange={e => setPrompt(e.target.value)}
-                    onFocus={() => setFocus(true)}
-                    onBlur={() => setFocus(false)}
-                />
-                <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 rounded-full ${focus ? 'w-[95%] opacity-100' : 'w-0 opacity-0'}`}></div>
-            </div>
+        <div className="w-full max-w-4xl mx-auto">
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Main Input Container */}
+                <div className="relative glass-effect-dark rounded-2xl p-6 border border-white/10">
+                    {/* Primary Inputs */}
+                    <div className="grid md:grid-cols-2 gap-4 mb-6">
+                        {/* Genre/Vibe Input */}
+                        <div className="relative group">
+                            <label className="block text-white/70 text-sm font-medium mb-2 transition-colors group-focus-within:text-white">
+                                Género o Vibra Musical
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    className="w-full bg-black/40 text-white placeholder-white/40 border-0 border-b-2 border-white/20 rounded-none px-0 py-3 focus:outline-none focus:border-white transition-all duration-300 bg-transparent"
+                                    placeholder="ej. jazz relajante, rock energético..."
+                                    value={prompt}
+                                    onChange={e => setPrompt(e.target.value)}
+                                    onFocus={() => setActiveField('prompt')}
+                                    onBlur={() => setActiveField('')}
+                                />
+                                <div className={`absolute bottom-0 left-0 h-0.5 bg-white transition-all duration-300 ${activeField === 'prompt' ? 'w-full' : 'w-0'}`}></div>
+                            </div>
+                        </div>
 
-            <div className="relative flex-1 min-w-[180px] group">
-                <input
-                    type="text"
-                    className="w-full bg-neutral-800/80 text-white placeholder-neutral-400 border-2 border-neutral-700/80 rounded-xl px-5 py-3.5 focus:outline-none focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 shadow-inner"
-                    placeholder="Artista (opcional)"
-                    value={artist}
-                    onChange={e => setArtist(e.target.value)}
-                    onFocus={() => setFocus(true)}
-                    onBlur={() => setFocus(false)}
-                />
-                <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300 rounded-full ${focus ? 'w-[95%] opacity-100' : 'w-0 opacity-0'}`}></div>
-            </div>
-
-            {/* Toggle para diversidad de artistas */}
-            <div className="w-full md:w-auto flex items-center justify-center md:justify-start gap-3 px-2">
-                <label className={`flex items-center gap-2 cursor-pointer text-sm transition-colors duration-200 ${artist.trim() ? 'text-neutral-500 cursor-not-allowed' : 'text-neutral-300 hover:text-white'
-                    }`}>
-                    <div className="relative">
-                        <input
-                            type="checkbox"
-                            className="sr-only"
-                            checked={allowDuplicateArtists}
-                            onChange={(e) => setAllowDuplicateArtists(e.target.checked)}
-                            disabled={artist.trim() !== ''}
-                        />
-                        <div className={`w-10 h-6 rounded-full transition-all duration-300 ${artist.trim()
-                                ? 'bg-neutral-600 opacity-50'
-                                : allowDuplicateArtists ? 'bg-blue-500' : 'bg-neutral-600'
-                            }`}>
-                            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-300 transform ${allowDuplicateArtists ? 'translate-x-5' : 'translate-x-1'
-                                } mt-1 ${artist.trim() ? 'opacity-70' : ''}`}></div>
+                        {/* Artist Input */}
+                        <div className="relative group">
+                            <label className="block text-white/70 text-sm font-medium mb-2 transition-colors group-focus-within:text-white">
+                                Artista Específico
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    className="w-full bg-black/40 text-white placeholder-white/40 border-0 border-b-2 border-white/20 rounded-none px-0 py-3 focus:outline-none focus:border-white transition-all duration-300 bg-transparent"
+                                    placeholder="ej. The Beatles, Taylor Swift... (opcional)"
+                                    value={artist}
+                                    onChange={e => setArtist(e.target.value)}
+                                    onFocus={() => setActiveField('artist')}
+                                    onBlur={() => setActiveField('')}
+                                />
+                                <div className={`absolute bottom-0 left-0 h-0.5 bg-white transition-all duration-300 ${activeField === 'artist' ? 'w-full' : 'w-0'}`}></div>
+                            </div>
                         </div>
                     </div>
-                    <span className="select-none">
-                        {artist.trim()
-                            ? 'Se permiten repetidos (artista específico)'
-                            : allowDuplicateArtists ? 'Permitir artistas repetidos' : 'Solo artistas únicos'
-                        }
-                    </span>
-                </label>
-            </div>
 
-            <div className="md:flex-shrink-0">
-                <div className="flex gap-3">
-                    <select
-                        className="bg-neutral-800/80 text-white border-2 border-neutral-700/80 rounded-xl px-4 py-3.5 focus:outline-none focus:border-blue-500/80 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 shadow-inner min-w-[140px]"
-                        value={count}
-                        onChange={e => setCount(Number(e.target.value))}
-                    >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                            <option key={n} value={n}>{n} canciones</option>
-                        ))}
-                    </select>
+                    {/* Settings Row */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        {/* Song Count */}
+                        <div className="flex items-center gap-3">
+                            <span className="text-white/70 text-sm font-medium min-w-max">Cantidad:</span>
+                            <div className="relative">
+                                <select
+                                    className="bg-transparent text-white border-0 border-b border-white/30 focus:outline-none focus:border-white transition-colors duration-300 pr-8 py-1 appearance-none cursor-pointer"
+                                    value={count}
+                                    onChange={e => setCount(Number(e.target.value))}
+                                >
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                        <option key={n} value={n} className="bg-black text-white">{n} canciones</option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
 
-                    <button
-                        type="submit"
-                        className="relative bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-purple-500 text-white font-semibold rounded-xl px-6 py-3.5 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 overflow-hidden group"
-                    >
-                        <span className="relative z-10 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Generar</span>
-                        </span>
-                        <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl"></div>
-                    </button>
+                        {/* Duplicate Artists Toggle */}
+                        <div className="flex items-center gap-3">
+                            <span className={`text-sm font-medium transition-colors ${artist.trim() ? 'text-white/40' : 'text-white/70'}`}>
+                                Solo artistas únicos
+                            </span>
+                            <button
+                                type="button"
+                                className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${artist.trim()
+                                        ? 'bg-white/20 cursor-not-allowed'
+                                        : allowDuplicateArtists ? 'bg-white' : 'bg-white/30'
+                                    } ${!artist.trim() ? 'hover:bg-white/40' : ''}`}
+                                onClick={() => !artist.trim() && setAllowDuplicateArtists(!allowDuplicateArtists)}
+                                disabled={artist.trim() !== ''}
+                            >
+                                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-all duration-300 ${allowDuplicateArtists ? 'translate-x-6 bg-black' : 'translate-x-0 bg-white'
+                                    } ${artist.trim() ? 'opacity-50' : ''}`}></div>
+                            </button>
+                            <span className={`text-sm font-medium transition-colors ${artist.trim() ? 'text-white/40' : 'text-white/70'}`}>
+                                Permitir repetidos
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Generate Button */}
+                    <div className="flex justify-center">
+                        <button
+                            type="submit"
+                            disabled={!prompt.trim() && !artist.trim()}
+                            className="group relative bg-white hover:bg-white/90 disabled:bg-white/30 disabled:cursor-not-allowed text-black font-semibold rounded-full px-8 py-4 transition-all duration-300 min-w-[200px] overflow-hidden"
+                        >
+                            <div className="relative z-10 flex items-center justify-center gap-3">
+                                <div className="w-5 h-5 flex items-center justify-center">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                </div>
+                                <span className="font-medium">Generar Playlist</span>
+                            </div>
+
+                            {/* Hover Effect */}
+                            <div className="absolute inset-0 w-0 bg-black/5 group-hover:w-full transition-all duration-300 rounded-full"></div>
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
+        </div>
     );
 }
