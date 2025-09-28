@@ -26,14 +26,30 @@ export async function POST({ request }) {
         return new Response(JSON.stringify({ tracks: [], error: 'Prompt y artista vacíos o inválidos' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // 🎵 Easter Egg: Palabra secreta "Exitoso" → Solo Peso Pluma
+    // 🎵 Easter Egg: Palabra secreta "Exitoso" → Solo Peso Pluma (La Patrulla primero)
     if (prompt.trim() === 'Exitoso') {
         console.log('🎵 Easter Egg activado: Exitoso → Peso Pluma');
-        const pesoPlumaTracks = await searchTracks(
-            ['Peso Pluma official music video', 'Peso Pluma corridos tumbados', 'Peso Pluma El Belicon'],
+
+        // "La Patrulla" directamente con el enlace específico
+        const laPatrullaTrack = {
+            url: 'https://www.youtube.com/watch?v=NhNyMeEnOLs',
+            title: 'Peso Pluma - LA PATRULLA',
+            channelTitle: 'Peso Pluma',
+            channelId: 'UCzrM_068Odho89mTRrrxqbA',
+            description: 'LA PATRULLA - Peso Pluma',
+            keyword: 'Easter Egg'
+        };
+
+        // Buscar otras canciones de Peso Pluma para completar (excluyendo La Patrulla)
+        const otherTracks = await searchTracks(
+            ['Peso Pluma El Belicon', 'Peso Pluma corridos tumbados', 'Peso Pluma hits', 'Peso Pluma popular songs'],
             'Peso Pluma',
-            { order: 'relevance', allowDuplicateArtists: true, maxTracks: count } // Easter egg siempre permite duplicados
+            { order: 'relevance', allowDuplicateArtists: true, maxTracks: count - 1 }
         );
+
+        // Combinar con "La Patrulla" primero
+        const pesoPlumaTracks = [laPatrullaTrack, ...otherTracks].slice(0, count);
+
         return new Response(
             JSON.stringify({ tracks: pesoPlumaTracks }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -51,7 +67,7 @@ export async function POST({ request }) {
         // Búsqueda simple por artista como funcionaba antes
         // Búsqueda mejorada por artista con múltiples keywords para obtener más variedad
         keywords = [
-            artist + ' official music video',
+            artist + ' music video',
             artist + ' best songs',
             artist + ' hits',
             artist,
@@ -75,20 +91,20 @@ export async function POST({ request }) {
         if (gemini.artists && gemini.artists.length > 0) {
             // Tomar hasta 'count' artistas diferentes para asegurar variedad
             const artistsToUse = gemini.artists.slice(0, Math.min(count, gemini.artists.length));
-            searchKeywords.push(...artistsToUse.map(a => `${a} best songs official`));
+            searchKeywords.push(...artistsToUse.map(a => `${a} best songs`));
         }
 
         // 2. Si tenemos canciones específicas, buscarlas también
         if (gemini.songs && gemini.songs.length > 0 && searchKeywords.length < count) {
             const songsNeeded = count - searchKeywords.length;
-            searchKeywords.push(...gemini.songs.slice(0, songsNeeded).map(s => `${s} official video`));
+            searchKeywords.push(...gemini.songs.slice(0, songsNeeded).map(s => `${s} music video`));
         }
 
         // 3. Si aún necesitamos más variedad, combinar artistas con sus canciones más populares
         if (searchKeywords.length < count && gemini.artists && gemini.songs) {
             const remaining = count - searchKeywords.length;
             for (let i = 0; i < remaining && i < gemini.artists.length && i < gemini.songs.length; i++) {
-                searchKeywords.push(`${gemini.artists[i]} ${gemini.songs[i]} official`);
+                searchKeywords.push(`${gemini.artists[i]} ${gemini.songs[i]}`);
             }
         }
 
@@ -104,7 +120,7 @@ export async function POST({ request }) {
             // Fallback: prompt + music más específico
             let promptMusic = prompt.trim();
             if (!/music/i.test(promptMusic)) {
-                promptMusic += ' official music';
+                promptMusic += ' music';
             }
             searchKeywords = [promptMusic, `best of ${promptMusic}`];
         }
@@ -115,6 +131,25 @@ export async function POST({ request }) {
         // 2. Buscar tracks en YouTube usando relevancia
         // Para búsquedas por género/prompt general, usar la configuración del usuario
         tracks = await searchTracks(keywords, '', { order: 'relevance', allowDuplicateArtists, maxTracks: count });
+
+        // Si no tenemos suficientes tracks y no permitimos duplicados, intentar con más keywords
+        if (tracks.length < count && !allowDuplicateArtists && gemini.artists && gemini.artists.length > 0) {
+            console.log(`Insufficient tracks (${tracks.length}/${count}), expanding search with more artists...`);
+
+            // Generar más keywords con artistas adicionales
+            const additionalKeywords = [];
+            const remainingArtists = gemini.artists.slice(keywords.length);
+
+            for (let i = 0; i < remainingArtists.length && additionalKeywords.length < count; i++) {
+                additionalKeywords.push(`${remainingArtists[i]} popular songs`);
+                additionalKeywords.push(`${remainingArtists[i]} greatest hits`);
+            }
+
+            if (additionalKeywords.length > 0) {
+                const expandedKeywords = [...keywords, ...additionalKeywords];
+                tracks = await searchTracks(expandedKeywords, '', { order: 'relevance', allowDuplicateArtists, maxTracks: count });
+            }
+        }
 
         // El límite ya se maneja en searchTracks
         console.log('Tracks YouTube:', tracks);

@@ -67,7 +67,7 @@ export default function YouTubePlayerWithEnd({ videoId, onEnd }) {
                     height: '100%',
                     playerVars: {
                         autoplay: 1,
-                        controls: 1,           // Habilitar controles nativos
+                        controls: 2,           // Controles siempre visibles y totalmente funcionales
                         modestbranding: 1,     // Reducir branding de YouTube
                         rel: 0,                // No mostrar videos relacionados
                         color: 'white',        // Color de la barra de progreso
@@ -76,12 +76,28 @@ export default function YouTubePlayerWithEnd({ videoId, onEnd }) {
                         fs: 1,                 // Permitir pantalla completa
                         iv_load_policy: 3,     // No mostrar anotaciones
                         disablekb: 0,          // Permitir controles por teclado
-                        showinfo: 0            // No mostrar info del video
+                        showinfo: 0,           // No mostrar info del video
+                        origin: window.location.origin  // Establecer origen para mejor compatibilidad
                     },
                     events: {
-                        onReady: () => {
+                        onReady: (event) => {
                             if (isComponentMounted) {
                                 setIsLoading(false);
+                                // Asegurar que los controles estén habilitados
+                                try {
+                                    // Pequeño delay para asegurar que el player esté completamente inicializado
+                                    setTimeout(() => {
+                                        if (playerRef.current && playerRef.current.getIframe) {
+                                            const iframe = playerRef.current.getIframe();
+                                            if (iframe) {
+                                                iframe.style.pointerEvents = 'auto';
+                                                iframe.style.touchAction = 'auto';
+                                            }
+                                        }
+                                    }, 100);
+                                } catch (e) {
+                                    console.warn('No se pudieron configurar los controles del iframe:', e);
+                                }
                             }
                         },
                         onStateChange: (event) => {
@@ -142,7 +158,8 @@ export default function YouTubePlayerWithEnd({ videoId, onEnd }) {
                 style={{
                     position: 'relative',
                     zIndex: 1,
-                    pointerEvents: 'auto'
+                    pointerEvents: 'auto',
+                    touchAction: 'auto'
                 }}
             ></div>
 

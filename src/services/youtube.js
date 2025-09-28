@@ -37,6 +37,10 @@ export async function searchTracks(keywords, artist = '', options = {}) {
     const { allowDuplicateArtists = defaultAllowDuplicates, maxTracks = 5 } = options;
     const allTracks = [];
     let channelId = undefined;
+
+    // Si no permitimos duplicados, necesitamos buscar más canciones para compensar el filtrado
+    const searchLimit = allowDuplicateArtists ? 8 : Math.max(12, maxTracks * 3);
+
     if (artist) {
         channelId = await getArtistChannelId(artist);
         console.log(`Canal encontrado para ${artist}:`, channelId || 'ninguno');
@@ -48,7 +52,7 @@ export async function searchTracks(keywords, artist = '', options = {}) {
 
         // Primero intentar con canal específico si existe
         if (channelId) {
-            let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=8&q=${encodeURIComponent(keyword)}&key=${YOUTUBE_API_KEY}`;
+            let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${searchLimit}&q=${encodeURIComponent(keyword)}&key=${YOUTUBE_API_KEY}`;
             url += `&order=${options.order || 'relevance'}&videoCategoryId=10&type=video&videoDuration=medium&channelId=${channelId}`;
             console.log(`Buscando en canal específico: ${channelId} para keyword: ${keyword}`);
 
@@ -79,7 +83,7 @@ export async function searchTracks(keywords, artist = '', options = {}) {
 
         // Si no encontró nada en canal específico o no hay canal, buscar generalmente
         if (foundItemsForKeyword === 0) {
-            let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=8&q=${encodeURIComponent(keyword)}&key=${YOUTUBE_API_KEY}`;
+            let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${searchLimit}&q=${encodeURIComponent(keyword)}&key=${YOUTUBE_API_KEY}`;
             url += `&order=${options.order || 'relevance'}&videoCategoryId=10&type=video&videoDuration=medium`;
             console.log(`Búsqueda general para keyword: ${keyword}`);
 
@@ -113,6 +117,11 @@ export async function searchTracks(keywords, artist = '', options = {}) {
         const titleLower = track.title.toLowerCase();
         const channelLower = track.channelTitle.toLowerCase();
 
+        // EASTER EGG: Prioridad máxima para "La Patrulla" de Peso Pluma
+        if (titleLower.includes('la patrulla') && titleLower.includes('peso pluma')) {
+            s += 100; // Puntuación altísima para garantizar que sea primera
+        }
+
         // Puntuación alta por canales oficiales
         if (channelLower.includes('vevo')) s += 8;
         if (channelLower.includes('official')) s += 6;
@@ -133,9 +142,9 @@ export async function searchTracks(keywords, artist = '', options = {}) {
             }
         }
 
-        // Puntuación alta por indicadores de calidad oficial
-        if (/official (video|audio|music video)/i.test(track.title)) s += 6;
-        if (/\b(official|hd|4k)\b/i.test(track.title)) s += 3;
+        // Puntuación alta por indicadores de calidad oficial (excluyendo videos oficiales con intros largas)
+        if (/official audio/i.test(track.title) && !/(video oficial|official video|official music video)/i.test(track.title)) s += 6;
+        if (/\b(official|hd|4k)\b/i.test(track.title) && !/(video oficial|official video|official music video)/i.test(track.title)) s += 3;
         if (/(music video)/i.test(track.title)) s += 2;
 
         // Bonificación menor por contenido en vivo
@@ -145,6 +154,12 @@ export async function searchTracks(keywords, artist = '', options = {}) {
         if (/(cover|remix|karaoke|instrumental|reaction|tutorial)/i.test(track.title)) s -= 5;
         if (/(lyric|letra)/i.test(track.title) && !/official/i.test(track.title)) s -= 3;
         if (/(fan made|unofficial)/i.test(track.title)) s -= 4;
+
+        // Penalización por "Video Oficial" y "Official Video" que suelen tener introducciones largas
+        if (/(video oficial|\(video oficial\)|videoclip oficial|clip oficial|official video|\(official video\)|official music video)/i.test(track.title)) s -= 6;
+
+        // Penalización fuerte por contenido de awards/billboard que tienen introducciones largas
+        if (/(billboard|awards?|music awards?|premio|latin|grammy)/i.test(track.title)) s -= 8;
 
         return s;
     }
@@ -199,17 +214,19 @@ export async function searchTracks(keywords, artist = '', options = {}) {
         tracksByKeyword.get(track.keyword).push(track);
     }
 
-    // Procesar un track por keyword para maximizar diversidad
-    for (const [keyword, tracks] of tracksByKeyword) {
-        // Ordenar tracks de este keyword por score
-        tracks.sort((a, b) => score(b) - score(a));
+    // Procesar tracks con estrategia diferente según allowDuplicateArtists
+    if (!allowDuplicateArtists) {
+        // Estrategia para artistas únicos: priorizar diversidad
+        const remainingTracks = [...allTracks].sort((a, b) => score(b) - score(a));
 
-        for (const track of tracks) {
+        for (const track of remainingTracks) {
+            if (unique.length >= maxTracks) break;
+
             // Skip si ya vimos esta URL exacta
             if (seenUrls.has(track.url)) continue;
 
             const normalizedTitle = normalizeTitle(track.title);
-            const artistExtracted = extractArtist(track, artist); // Pasar el artista de búsqueda
+            const artistExtracted = extractArtist(track, artist);
 
             // Skip si ya vimos un título muy similar
             let isSimilar = false;
@@ -221,38 +238,103 @@ export async function searchTracks(keywords, artist = '', options = {}) {
             }
             if (isSimilar) continue;
 
-            // Permitir múltiples canciones por artista si allowDuplicateArtists es true
-            // Para búsquedas por artista específico, permitir exactamente el número solicitado
-            const maxTracksPerArtist = allowDuplicateArtists ? maxTracks : 1;
-            const currentArtistCount = artistTrackCount.get(artistExtracted) || 0;
-            if (currentArtistCount >= maxTracksPerArtist) continue;
+            // Skip si ya tenemos una canción de este artista
+            if (artistTrackCount.has(artistExtracted)) continue;
 
             // Agregar a la lista final
             unique.push(track);
             seenUrls.add(track.url);
             seenTitles.add(normalizedTitle);
-            artistTrackCount.set(artistExtracted, currentArtistCount + 1);
+            artistTrackCount.set(artistExtracted, 1);
+        }
+    } else {
+        // Estrategia original para cuando se permiten artistas duplicados
+        for (const [keyword, tracks] of tracksByKeyword) {
+            // Ordenar tracks de este keyword por score
+            tracks.sort((a, b) => score(b) - score(a));
 
-            // Si no permitimos artistas duplicados, solo tomar el mejor track de cada keyword
-            // Si permitimos duplicados, calcular cuántos tracks por keyword necesitamos
-            const maxTracksPerKeyword = allowDuplicateArtists ? Math.ceil(maxTracks / keywords.length) : 1;
-            const tracksFromThisKeyword = unique.filter(t => t.keyword === keyword).length;
-            if (tracksFromThisKeyword >= maxTracksPerKeyword) {
-                break;
+            for (const track of tracks) {
+                // Skip si ya vimos esta URL exacta
+                if (seenUrls.has(track.url)) continue;
+
+                const normalizedTitle = normalizeTitle(track.title);
+                const artistExtracted = extractArtist(track, artist);
+
+                // Skip si ya vimos un título muy similar
+                let isSimilar = false;
+                for (const seenTitle of seenTitles) {
+                    if (normalizedTitle.includes(seenTitle) || seenTitle.includes(normalizedTitle)) {
+                        isSimilar = true;
+                        break;
+                    }
+                }
+                if (isSimilar) continue;
+
+                const maxTracksPerArtist = maxTracks;
+                const currentArtistCount = artistTrackCount.get(artistExtracted) || 0;
+                if (currentArtistCount >= maxTracksPerArtist) continue;
+
+                // Agregar a la lista final
+                unique.push(track);
+                seenUrls.add(track.url);
+                seenTitles.add(normalizedTitle);
+                artistTrackCount.set(artistExtracted, currentArtistCount + 1);
+
+                const maxTracksPerKeyword = Math.ceil(maxTracks / keywords.length);
+                const tracksFromThisKeyword = unique.filter(t => t.keyword === keyword).length;
+                if (tracksFromThisKeyword >= maxTracksPerKeyword) {
+                    break;
+                }
+
+                // Parar si ya tenemos suficientes tracks
+                if (unique.length >= maxTracks) {
+                    break;
+                }
             }
 
-            // Parar si ya tenemos suficientes tracks
+            // Salir del loop principal si ya tenemos suficientes tracks
             if (unique.length >= maxTracks) {
                 break;
             }
         }
-
-        // Salir del loop principal si ya tenemos suficientes tracks
-        if (unique.length >= maxTracks) {
-            break;
-        }
     }
 
     console.log(`searchTracks final result: ${unique.length} tracks, allowDuplicateArtists: ${allowDuplicateArtists}, maxTracks: ${maxTracks}`);
+    console.log('Artist distribution:', [...artistTrackCount.entries()]);
+
+    // Si tenemos menos tracks del solicitado y no permitimos duplicados, intentar buscar más
+    if (unique.length < maxTracks && !allowDuplicateArtists) {
+        console.log(`Insufficient tracks (${unique.length}/${maxTracks}), trying to fill remaining slots...`);
+
+        // Intentar agregar más tracks permitiendo cierta flexibilidad
+        const remainingSlots = maxTracks - unique.length;
+        const remainingTracks = allTracks.filter(track =>
+            !seenUrls.has(track.url) &&
+            score(track) > 0 // Solo tracks con score positivo
+        ).sort((a, b) => score(b) - score(a));
+
+        for (const track of remainingTracks) {
+            if (unique.length >= maxTracks) break;
+
+            const normalizedTitle = normalizeTitle(track.title);
+            let isSimilar = false;
+            for (const seenTitle of seenTitles) {
+                if (normalizedTitle.includes(seenTitle) || seenTitle.includes(normalizedTitle)) {
+                    isSimilar = true;
+                    break;
+                }
+            }
+            if (isSimilar) continue;
+
+            unique.push(track);
+            seenUrls.add(track.url);
+            seenTitles.add(normalizedTitle);
+            const artistExtracted = extractArtist(track, artist);
+            artistTrackCount.set(artistExtracted, (artistTrackCount.get(artistExtracted) || 0) + 1);
+        }
+
+        console.log(`After filling: ${unique.length} tracks`);
+    }
+
     return unique.slice(0, maxTracks);
 }

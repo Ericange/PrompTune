@@ -18,13 +18,20 @@ export default function App() {
         return () => document.body.classList.remove('fade-in');
     }, []);
 
+    // Force re-render when tracks array changes to ensure proper refresh
+    useEffect(() => {
+        if (tracks.length > 0) {
+            console.log('Playlist updated with', tracks.length, 'tracks');
+        }
+    }, [tracks]);
+
     async function handlePrompt({ prompt, artist, count, allowDuplicateArtists }) {
         if (!prompt.trim() && !artist.trim()) {
             setError('Por favor ingresa un género o un artista.');
             return;
         }
 
-        // Limpiar playlist actual y detener reproducción antes de generar nueva
+        // Limpiar completamente el estado antes de generar nueva playlist
         setTracks([]);
         setCurrentIdx(0);
         setIsPlaying(false);
@@ -42,13 +49,19 @@ export default function App() {
                 setError(data.error || 'Error al generar playlist');
                 setTracks([]);
                 setCurrentIdx(0);
+                setIsPlaying(false);
                 return;
             }
-            setTracks(data.tracks || []);
+            // Forzar re-render completo asignando nueva array
+            const newTracks = data.tracks || [];
+            setTracks([...newTracks]);
             setCurrentIdx(0);
-            setIsPlaying(true);
+            setIsPlaying(newTracks.length > 0);
         } catch (e) {
             setError('Error de red o servidor.');
+            setTracks([]);
+            setCurrentIdx(0);
+            setIsPlaying(false);
         } finally {
             setLoading(false);
         }
@@ -180,8 +193,8 @@ export default function App() {
                 {/* HEADER - LOGO & TITLE CON DISEÑO NEURONAL */}
                 <div className="w-full max-w-6xl mb-12">
                     <div className="flex items-center justify-center gap-6 mb-4">
-                        <div className="relative float-animation">
-                            <div className="absolute inset-0 bg-white/10 blur-xl rounded-full neural-pulse"></div>
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-white/10 blur-xl rounded-full"></div>
                             <img
                                 src="/promptune-high-resolution-logo.png"
                                 alt="PrompTune Logo"
@@ -305,7 +318,7 @@ export default function App() {
                                     disabled={currentIdx === 0}
                                     className={`p-4 rounded-full transition-all duration-300 ${currentIdx === 0
                                         ? 'text-gray-600 cursor-not-allowed'
-                                        : 'text-white hover:text-gray-300 hover:bg-white/10 glass-effect neural-pulse'
+                                        : 'text-white hover:text-gray-300 hover:bg-white/10 glass-effect'
                                         }`}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -337,7 +350,7 @@ export default function App() {
                                     disabled={currentIdx >= tracks.length - 1}
                                     className={`p-4 rounded-full transition-all duration-300 ${currentIdx >= tracks.length - 1
                                         ? 'text-gray-600 cursor-not-allowed'
-                                        : 'text-white hover:text-gray-300 hover:bg-white/10 glass-effect neural-pulse'
+                                        : 'text-white hover:text-gray-300 hover:bg-white/10 glass-effect'
                                         }`}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -369,10 +382,10 @@ export default function App() {
                             <div className="relative glass-effect rounded-3xl shadow-2xl border border-white/20 bg-black/50 p-6 flex flex-col gap-4">
                                 <div className="flex items-center justify-between mb-4">
                                     <h2 className="text-white text-xl font-bold font-['Afacad']">
-                                        Neural Playlist
+                                        Cola
                                     </h2>
                                     <div className="flex items-center gap-2 text-white text-sm glass-effect px-4 py-2 rounded-full border border-white/20">
-                                        <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                                        <div className="w-3 h-3 bg-white rounded-full"></div>
                                         <span className="font-semibold">{tracks.length}</span>
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
@@ -389,9 +402,9 @@ export default function App() {
 
                                             return (
                                                 <div
-                                                    key={`${track.url}-${idx}`}
+                                                    key={`track-${idx}-${track.url}`}
                                                     className={`group flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all duration-300 ${isCurrentTrack
-                                                        ? 'bg-white/20 border border-white/50 neural-pulse'
+                                                        ? 'bg-white/20 border border-white/50'
                                                         : isPlayed
                                                             ? 'bg-gray-800/20 border border-gray-700/30 opacity-70'
                                                             : 'hover:bg-white/10 border border-gray-600/20 hover:border-white/40'
@@ -405,7 +418,7 @@ export default function App() {
                                                             : 'bg-gray-800 text-white group-hover:bg-gray-600 group-hover:text-white'
                                                         }`}>
                                                         {isCurrentTrack ? (
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-pulse" viewBox="0 0 20 20" fill="currentColor">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
                                                             </svg>
                                                         ) : isPlayed ? (
