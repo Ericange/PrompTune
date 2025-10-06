@@ -74,7 +74,7 @@ export default function InputPrompt({ onSubmit, horizontalOnDesktop }) {
                                     value={count}
                                     onChange={e => setCount(Number(e.target.value))}
                                 >
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20].map(n => (
                                         <option key={n} value={n} className="bg-black text-white">{n} canciones</option>
                                     ))}
                                 </select>
@@ -89,13 +89,13 @@ export default function InputPrompt({ onSubmit, horizontalOnDesktop }) {
                         {/* Duplicate Artists Toggle */}
                         <div className="flex items-center gap-3">
                             <span className={`text-sm font-medium transition-colors ${artist.trim() ? 'text-white/40' : 'text-white/70'}`}>
-                                Solo artistas únicos
+                                Artistas Repetidos ({allowDuplicateArtists ? 'Sí' : 'No'})
                             </span>
                             <button
                                 type="button"
                                 className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${artist.trim()
-                                        ? 'bg-white/20 cursor-not-allowed'
-                                        : allowDuplicateArtists ? 'bg-white' : 'bg-white/30'
+                                    ? 'bg-white/20 cursor-not-allowed'
+                                    : allowDuplicateArtists ? 'bg-white' : 'bg-white/30'
                                     } ${!artist.trim() ? 'hover:bg-white/40' : ''}`}
                                 onClick={() => !artist.trim() && setAllowDuplicateArtists(!allowDuplicateArtists)}
                                 disabled={artist.trim() !== ''}
@@ -103,9 +103,6 @@ export default function InputPrompt({ onSubmit, horizontalOnDesktop }) {
                                 <div className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-all duration-300 ${allowDuplicateArtists ? 'translate-x-6 bg-black' : 'translate-x-0 bg-white'
                                     } ${artist.trim() ? 'opacity-50' : ''}`}></div>
                             </button>
-                            <span className={`text-sm font-medium transition-colors ${artist.trim() ? 'text-white/40' : 'text-white/70'}`}>
-                                Permitir repetidos
-                            </span>
                         </div>
                     </div>
 

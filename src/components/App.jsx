@@ -193,8 +193,8 @@ export default function App() {
                 {/* HEADER - LOGO & TITLE CON DISEÑO NEURONAL */}
                 <div className="w-full max-w-6xl mb-12">
                     <div className="flex items-center justify-center gap-6 mb-4">
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-white/10 blur-xl rounded-full"></div>
+                        <div className="relative float-animation">
+                            <div className="absolute inset-0 bg-white/10 blur-xl rounded-full glow-pulse"></div>
                             <img
                                 src="/promptune-high-resolution-logo.png"
                                 alt="PrompTune Logo"
@@ -202,7 +202,7 @@ export default function App() {
                             />
                         </div>
                         <div className="text-center">
-                            <h1 className="text-6xl font-bold text-white tracking-tight"
+                            <h1 className="text-6xl font-bold text-white tracking-tight text-glow"
                                 style={{ fontFamily: 'Afacad, sans-serif' }}>
                                 PrompTune
                             </h1>
@@ -264,12 +264,12 @@ export default function App() {
 
                 {/* REPRODUCTOR Y PLAYLIST CON DISEÑO NEURONAL */}
                 {tracks.length > 0 && (
-                    <div className="w-full max-w-7xl flex flex-col xl:flex-row gap-8 items-start animate-fadeIn">
+                    <div className="w-full max-w-7xl flex flex-col xl:flex-row gap-8 items-start scale-in">
                         {/* REPRODUCTOR Y CONTROLES */}
-                        <div className="flex-1 flex flex-col items-center">
+                        <div className="flex-1 flex flex-col items-center slide-in-left">
                             <div className="w-full max-w-2xl relative group">
                                 {/* Efecto de halo neuronal */}
-                                <div className="absolute inset-0 bg-white/10 blur-2xl rounded-3xl neural-pulse"></div>
+                                <div className="absolute inset-0 bg-white/10 blur-2xl rounded-3xl glow-pulse"></div>
 
                                 <div className="relative glass-effect rounded-3xl shadow-2xl border border-white/20 bg-black/50 w-full aspect-video overflow-hidden">
                                     {currentVideoId ? (
@@ -316,7 +316,7 @@ export default function App() {
                                 <button
                                     onClick={handlePrevious}
                                     disabled={currentIdx === 0}
-                                    className={`p-4 rounded-full transition-all duration-300 ${currentIdx === 0
+                                    className={`p-4 rounded-full transition-all duration-300 hover-lift ${currentIdx === 0
                                         ? 'text-gray-600 cursor-not-allowed'
                                         : 'text-white hover:text-gray-300 hover:bg-white/10 glass-effect'
                                         }`}
@@ -330,7 +330,7 @@ export default function App() {
                                     {currentVideoId ? (
                                         <div className="relative flex items-center justify-center">
                                             <div className="absolute inset-0 bg-white rounded-full animate-ping opacity-20"></div>
-                                            <div className="relative bg-white p-4 rounded-full shadow-lg">
+                                            <div className="relative bg-white p-4 rounded-full shadow-lg hover-lift">
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-black" fill="currentColor" viewBox="0 0 24 24">
                                                     <path d="M8 5v14l11-7z" />
                                                 </svg>
@@ -348,7 +348,7 @@ export default function App() {
                                 <button
                                     onClick={handleNext}
                                     disabled={currentIdx >= tracks.length - 1}
-                                    className={`p-4 rounded-full transition-all duration-300 ${currentIdx >= tracks.length - 1
+                                    className={`p-4 rounded-full transition-all duration-300 hover-lift ${currentIdx >= tracks.length - 1
                                         ? 'text-gray-600 cursor-not-allowed'
                                         : 'text-white hover:text-gray-300 hover:bg-white/10 glass-effect'
                                         }`}
@@ -375,9 +375,9 @@ export default function App() {
                         </div>
 
                         {/* PLAYLIST CON DISEÑO NEURONAL */}
-                        <div className="w-full xl:w-[480px] relative">
+                        <div className="w-full xl:w-[480px] relative slide-in-right">
                             {/* Efecto de halo neuronal para la playlist */}
-                            <div className="absolute inset-0 bg-white/5 blur-xl rounded-3xl"></div>
+                            <div className="absolute inset-0 bg-white/5 blur-xl rounded-3xl soft-pulse"></div>
 
                             <div className="relative glass-effect rounded-3xl shadow-2xl border border-white/20 bg-black/50 p-6 flex flex-col gap-4">
                                 <div className="flex items-center justify-between mb-4">
@@ -403,8 +403,8 @@ export default function App() {
                                             return (
                                                 <div
                                                     key={`track-${idx}-${track.url}`}
-                                                    className={`group flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all duration-300 ${isCurrentTrack
-                                                        ? 'bg-white/20 border border-white/50'
+                                                    className={`group flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all duration-300 hover-lift ${isCurrentTrack
+                                                        ? 'bg-white/20 border border-white/50 scale-in'
                                                         : isPlayed
                                                             ? 'bg-gray-800/20 border border-gray-700/30 opacity-70'
                                                             : 'hover:bg-white/10 border border-gray-600/20 hover:border-white/40'

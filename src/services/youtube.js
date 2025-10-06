@@ -39,7 +39,10 @@ export async function searchTracks(keywords, artist = '', options = {}) {
     let channelId = undefined;
 
     // Si no permitimos duplicados, necesitamos buscar más canciones para compensar el filtrado
-    const searchLimit = allowDuplicateArtists ? 8 : Math.max(12, maxTracks * 3);
+    // Aumentar el límite de búsqueda para playlists más grandes (15, 20 canciones)
+    const searchLimit = allowDuplicateArtists
+        ? Math.max(15, Math.ceil(maxTracks * 1.5))
+        : Math.max(20, maxTracks * 3);
 
     if (artist) {
         channelId = await getArtistChannelId(artist);
@@ -117,6 +120,62 @@ export async function searchTracks(keywords, artist = '', options = {}) {
         const titleLower = track.title.toLowerCase();
         const channelLower = track.channelTitle.toLowerCase();
 
+        // FILTRO CRÍTICO: Rechazar completamente mixes, compilaciones y playlists
+        const rejectPatterns = [
+            /\bmix\b/i,
+            /\bmegamix\b/i,
+            /\bcontinuous\b/i,
+            /\bcompilaci[oó]n\b/i,
+            /\bcompilation\b/i,
+            /\bplaylist\b/i,
+            /\balbum completo\b/i,
+            /\bfull album\b/i,
+            /\bmejores\s+(canciones|éxitos|hits)\b/i,
+            /\bbest\s+(songs|hits|of)\b/i,
+            /\btop\s+\d+/i,
+            /\d+\s+(hours?|horas?|minutos?|minutes?)/i,
+            /\bmedley\b/i,
+            /\bmashup\b/i,
+            /\&\s+más\b/i,
+            /\&\s+more\b/i,
+            /\bvarios\s+artistas\b/i,
+            /\bvarious\s+artists\b/i,
+        ];
+
+        for (const pattern of rejectPatterns) {
+            if (pattern.test(titleLower) || pattern.test(channelLower)) {
+                return -100; // Puntuación extremadamente negativa para excluir completamente
+            }
+        }
+
+        // FILTRO CRÍTICO: Rechazar COMPLETAMENTE videos oficiales con intros
+        // Solo queremos audio oficial y lyrics oficiales
+        const videoOfficialPatterns = [
+            /official\s+music\s+video/i,
+            /official\s+video/i,
+            /\(official\s+video\)/i,
+            /video\s+oficial/i,
+            /\(video\s+oficial\)/i,
+            /videoclip\s+oficial/i,
+            /clip\s+oficial/i,
+            /music\s+video/i,
+        ];
+
+        for (const pattern of videoOfficialPatterns) {
+            if (pattern.test(titleLower)) {
+                // Solo permitir si explícitamente dice "audio" también
+                if (!/audio/i.test(titleLower)) {
+                    return -100; // Rechazar completamente videos oficiales
+                }
+            }
+        }
+
+        // MÁXIMA PRIORIDAD: Audio Oficial y Lyrics Oficiales
+        if (/official\s+audio/i.test(titleLower)) s += 50; // Prioridad máxima para audio oficial
+        if (/official\s+lyric/i.test(titleLower) || /official\s+lyrics/i.test(titleLower)) s += 45; // Muy alta prioridad para lyrics oficiales
+        if (/\(audio\s+oficial\)/i.test(titleLower) || /audio\s+oficial/i.test(titleLower)) s += 50;
+        if (/\(letra\s+oficial\)/i.test(titleLower) || /letra\s+oficial/i.test(titleLower)) s += 45;
+
         // EASTER EGG: Prioridad máxima para "La Patrulla" de Peso Pluma
         if (titleLower.includes('la patrulla') && titleLower.includes('peso pluma')) {
             s += 100; // Puntuación altísima para garantizar que sea primera
@@ -125,7 +184,7 @@ export async function searchTracks(keywords, artist = '', options = {}) {
         // Puntuación alta por canales oficiales
         if (channelLower.includes('vevo')) s += 8;
         if (channelLower.includes('official')) s += 6;
-        if (channelLower.includes('topic')) s += 5;
+        if (channelLower.includes('topic')) s += 10; // Topic channels suelen tener solo audio
 
         // Puntuación por coincidencia de artista en canal
         if (artist && channelLower.includes(artist.toLowerCase())) s += 7;
@@ -142,28 +201,27 @@ export async function searchTracks(keywords, artist = '', options = {}) {
             }
         }
 
-        // Puntuación alta por indicadores de calidad oficial (excluyendo videos oficiales con intros largas)
-        if (/official audio/i.test(track.title) && !/(video oficial|official video|official music video)/i.test(track.title)) s += 6;
-        if (/\b(official|hd|4k)\b/i.test(track.title) && !/(video oficial|official video|official music video)/i.test(track.title)) s += 3;
-        if (/(music video)/i.test(track.title)) s += 2;
+        // Bonificación por audio sin video
+        if (/\baudio\b/i.test(titleLower) && !/video/i.test(titleLower)) s += 8;
 
-        // Bonificación menor por contenido en vivo
+        // Bonificación menor por contenido en vivo (pero menos que audio oficial)
         if (/(live|concert|performance)/i.test(track.title)) s += 1;
 
         // Penalización fuerte por contenido no deseado
-        if (/(cover|remix|karaoke|instrumental|reaction|tutorial)/i.test(track.title)) s -= 5;
-        if (/(lyric|letra)/i.test(track.title) && !/official/i.test(track.title)) s -= 3;
-        if (/(fan made|unofficial)/i.test(track.title)) s -= 4;
-
-        // Penalización por "Video Oficial" y "Official Video" que suelen tener introducciones largas
-        if (/(video oficial|\(video oficial\)|videoclip oficial|clip oficial|official video|\(official video\)|official music video)/i.test(track.title)) s -= 6;
+        if (/(cover|remix|karaoke|instrumental|reaction|tutorial)/i.test(track.title)) s -= 10;
+        if (/(lyric|letra)/i.test(track.title) && !/official/i.test(track.title)) s -= 5;
+        if (/(fan made|unofficial)/i.test(track.title)) s -= 8;
 
         // Penalización fuerte por contenido de awards/billboard que tienen introducciones largas
-        if (/(billboard|awards?|music awards?|premio|latin|grammy)/i.test(track.title)) s -= 8;
+        if (/(billboard|awards?|music awards?|premio|latin|grammy)/i.test(track.title)) s -= 10;
 
         return s;
     }
-    allTracks.sort((a, b) => score(b) - score(a));
+    // Filtrar tracks con score negativo (mixes, compilaciones, etc.) ANTES de ordenar
+    const validTracks = allTracks.filter(track => score(track) > -50);
+    console.log(`Filtrado: ${allTracks.length} tracks originales -> ${validTracks.length} tracks válidos (eliminados ${allTracks.length - validTracks.length} mixes/compilaciones)`);
+
+    validTracks.sort((a, b) => score(b) - score(a));
 
     // Sistema mejorado de deduplicación para asegurar máxima diversidad de artistas
     const unique = [];
@@ -207,7 +265,7 @@ export async function searchTracks(keywords, artist = '', options = {}) {
 
     // Primero, organizar tracks por keyword para garantizar diversidad
     const tracksByKeyword = new Map();
-    for (const track of allTracks) {
+    for (const track of validTracks) {
         if (!tracksByKeyword.has(track.keyword)) {
             tracksByKeyword.set(track.keyword, []);
         }
@@ -217,7 +275,7 @@ export async function searchTracks(keywords, artist = '', options = {}) {
     // Procesar tracks con estrategia diferente según allowDuplicateArtists
     if (!allowDuplicateArtists) {
         // Estrategia para artistas únicos: priorizar diversidad
-        const remainingTracks = [...allTracks].sort((a, b) => score(b) - score(a));
+        const remainingTracks = [...validTracks].sort((a, b) => score(b) - score(a));
 
         for (const track of remainingTracks) {
             if (unique.length >= maxTracks) break;
@@ -270,7 +328,8 @@ export async function searchTracks(keywords, artist = '', options = {}) {
                 }
                 if (isSimilar) continue;
 
-                const maxTracksPerArtist = maxTracks;
+                // Limitar tracks por artista de forma razonable (máximo 3-5 por artista)
+                const maxTracksPerArtist = Math.min(5, Math.ceil(maxTracks / 4));
                 const currentArtistCount = artistTrackCount.get(artistExtracted) || 0;
                 if (currentArtistCount >= maxTracksPerArtist) continue;
 
@@ -308,7 +367,7 @@ export async function searchTracks(keywords, artist = '', options = {}) {
 
         // Intentar agregar más tracks permitiendo cierta flexibilidad
         const remainingSlots = maxTracks - unique.length;
-        const remainingTracks = allTracks.filter(track =>
+        const remainingTracks = validTracks.filter(track =>
             !seenUrls.has(track.url) &&
             score(track) > 0 // Solo tracks con score positivo
         ).sort((a, b) => score(b) - score(a));

@@ -65,13 +65,13 @@ export async function POST({ request }) {
     const promptNorm = normalize(prompt);
     if (artist) {
         // Búsqueda simple por artista como funcionaba antes
-        // Búsqueda mejorada por artista con múltiples keywords para obtener más variedad
+        // Búsqueda mejorada por artista con múltiples keywords priorizando audio oficial
         keywords = [
-            artist + ' music video',
+            artist + ' official audio',
+            artist + ' audio',
             artist + ' best songs',
             artist + ' hits',
-            artist,
-            artist + ' popular'
+            artist
         ];
         tracks = await searchTracks(keywords, artist, { order: 'viewCount', maxTracks: count });
         console.log('Búsqueda inicial tracks encontrados:', tracks.length);
@@ -91,20 +91,20 @@ export async function POST({ request }) {
         if (gemini.artists && gemini.artists.length > 0) {
             // Tomar hasta 'count' artistas diferentes para asegurar variedad
             const artistsToUse = gemini.artists.slice(0, Math.min(count, gemini.artists.length));
-            searchKeywords.push(...artistsToUse.map(a => `${a} best songs`));
+            searchKeywords.push(...artistsToUse.map(a => `${a} official audio`));
         }
 
-        // 2. Si tenemos canciones específicas, buscarlas también
+        // 2. Si tenemos canciones específicas, buscarlas también priorizando audio
         if (gemini.songs && gemini.songs.length > 0 && searchKeywords.length < count) {
             const songsNeeded = count - searchKeywords.length;
-            searchKeywords.push(...gemini.songs.slice(0, songsNeeded).map(s => `${s} music video`));
+            searchKeywords.push(...gemini.songs.slice(0, songsNeeded).map(s => `${s} official audio`));
         }
 
-        // 3. Si aún necesitamos más variedad, combinar artistas con sus canciones más populares
+        // 3. Si aún necesitamos más variedad, combinar artistas con audio oficial
         if (searchKeywords.length < count && gemini.artists && gemini.songs) {
             const remaining = count - searchKeywords.length;
             for (let i = 0; i < remaining && i < gemini.artists.length && i < gemini.songs.length; i++) {
-                searchKeywords.push(`${gemini.artists[i]} ${gemini.songs[i]}`);
+                searchKeywords.push(`${gemini.artists[i]} ${gemini.songs[i]} audio`);
             }
         }
 
@@ -117,16 +117,28 @@ export async function POST({ request }) {
         }
 
         if (searchKeywords.length === 0) {
-            // Fallback: prompt + music más específico
+            // Fallback: prompt + music más específico con variedad de búsquedas
             let promptMusic = prompt.trim();
             if (!/music/i.test(promptMusic)) {
                 promptMusic += ' music';
             }
-            searchKeywords = [promptMusic, `best of ${promptMusic}`];
+
+            // Generar múltiples keywords priorizando audio oficial
+            searchKeywords = [
+                `${promptMusic} official audio`,
+                `${promptMusic} audio`,
+                promptMusic,
+                `${promptMusic} songs`,
+                `${promptMusic} hits`,
+                `popular ${promptMusic}`,
+                `${promptMusic} 2024`
+            ];
         }
 
         // Limitar keywords pero asegurar variedad
-        keywords = [...new Set(searchKeywords)].slice(0, Math.min(count * 2, 10)); // Menos keywords, más calidad
+        // Para playlists grandes (15-20), usar más keywords
+        const maxKeywords = count <= 10 ? Math.min(count * 2, 10) : Math.min(count, 15);
+        keywords = [...new Set(searchKeywords)].slice(0, maxKeywords);
 
         // 2. Buscar tracks en YouTube usando relevancia
         // Para búsquedas por género/prompt general, usar la configuración del usuario
