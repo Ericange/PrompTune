@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 128 128">
+    <!-- Cabeza/silueta -->
+    <path d="M32 96c0-35.35 28.65-64 64-64s64 28.65 64 64c0 8-1.5 15.6-4.2 22.6C146.8 132.4 122.8 144 96 144c-26.8 0-50.8-11.6-59.8-25.4C33.5 111.6 32 104 32 96z" fill="#000"/>
+    
+    <!-- Cerebro (cloud shape) -->
+    <ellipse cx="76" cy="70" rx="20" ry="12" fill="#FFF"/>
+    <ellipse cx="92" cy="65" rx="16" ry="10" fill="#FFF"/>
+    <ellipse cx="84" cy="78" rx="18" ry="8" fill="#FFF"/>
+    
+    <!-- Nota musical -->
+    <circle cx="86" cy="68" r="4" fill="#000"/>
+    <rect x="89" y="54" width="2" height="14" fill="#000"/>
+    <path d="M91 54c0 0 6-2 8-1s2 3 0 4-6 1-8 0V54z" fill="#000"/>
+    
+    <style>
+        @media (prefers-color-scheme: dark) {
+            path:first-child { fill: #FFF; }
+            ellipse { fill: #000; }
+            circle, rect, path:last-of-type { fill: #FFF; }
+        }
+    </style>
+</svg>
