@@ -6,10 +6,23 @@ El proyecto ya está configurado para desplegarse en Vercel con las siguientes a
 
 ### Cambios Realizados
 
-1. **Adaptador de Vercel Instalado** (`@astrojs/vercel`)
+1. **Adaptador de Vercel Instalado** (`@astrojs/vercel@^8.2.8`)
 2. **Configuración de Astro actualizada** (`astro.config.mjs`)
    - `output: 'server'` para SSR
    - `adapter: vercel()` para despliegue en Vercel
+   - Web Analytics habilitado
+
+## 🐛 Error Resuelto
+
+**Error anterior:**
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/dist/server/entry.mjs'
+```
+
+**Solución aplicada:**
+- ✅ Actualizado `@astrojs/vercel` a la versión `8.2.8` (compatible con Astro 5.x)
+- ✅ Corregida la importación de `@astrojs/vercel` (sin `/serverless`)
+- ✅ Configuración optimizada para producción en Vercel
 
 ## 📋 Pasos para Desplegar
 
