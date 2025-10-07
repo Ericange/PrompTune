@@ -2,5 +2,10 @@
     "buildCommand": "npm run build",
     "framework": "astro",
     "cleanUrls": true,
-    "trailingSlash": false
+    "trailingSlash": false,
+    "functions": {
+        "api/**/*.js": {
+            "runtime": "nodejs20.x"
+        }
+    }
 }

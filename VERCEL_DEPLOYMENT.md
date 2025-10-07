@@ -27,22 +27,33 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/dist/server/entry.mj
 
 ### 🔧 Pasos para Resolver el Error en Vercel
 
-Si el error persiste después del despliegue, sigue estos pasos:
+**IMPORTANTE**: Este error es causado por un problema de caché persistente en Vercel.
 
-**1. Limpiar caché de Vercel:**
-   - Ve a tu proyecto en Vercel Dashboard
-   - Settings → General → Scroll down
-   - Click en "Clear Build Cache & Redeploy"
+**Opción 1: Limpiar caché (Recomendado)**
+1. Ve a tu proyecto en Vercel Dashboard
+2. **Settings** → **General**  
+3. Scroll down hasta "Build & Development Settings"
+4. Click en **"Clear Build Cache & Redeploy"** ← MUY IMPORTANTE
 
-**2. Verificar variables de entorno:**
-   - Settings → Environment Variables
-   - Asegúrate que estén definidas para todos los entornos
+**Opción 2: Si la Opción 1 no funciona**
+1. Ve a tu proyecto en Vercel Dashboard
+2. **Settings** → **General**
+3. Click en **"Delete Project"** (Sí, eliminarlo)
+4. Vuelve a importar el repositorio desde GitHub
+5. Configura las variables de entorno de nuevo:
+   - `GEMINI_API_KEY`
+   - `YOUTUBE_API_KEY`
 
-**3. Forzar redespliegue:**
-   ```bash
-   git commit --allow-empty -m "Force redeploy"
-   git push origin main
-   ```
+**Opción 3: Forzar un redespliegue completo**
+```bash
+# Crear un cambio vacío para forzar rebuild
+git commit --allow-empty -m "Force rebuild with clean cache"
+git push origin main
+
+# En Vercel Dashboard, ve a Deployments
+# Click en los "..." del último deployment
+# Selecciona "Redeploy" y marca "Use existing Build Cache: NO"
+```
 
 ## 📋 Pasos para Desplegar
 
