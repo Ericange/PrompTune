@@ -19,10 +19,30 @@ El proyecto ya está configurado para desplegarse en Vercel con las siguientes a
 Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/dist/server/entry.mjs'
 ```
 
-**Solución aplicada:**
-- ✅ Actualizado `@astrojs/vercel` a la versión `8.2.8` (compatible con Astro 5.x)
-- ✅ Corregida la importación de `@astrojs/vercel` (sin `/serverless`)
-- ✅ Configuración optimizada para producción en Vercel
+**Soluciones aplicadas:**
+1. ✅ Actualizado `@astrojs/vercel` a la versión `8.2.8` (compatible con Astro 5.x)
+2. ✅ Cambiado `output: 'static'` con SSR selectivo para la API
+3. ✅ Añadido `vercel.json` para configuración explícita
+4. ✅ API endpoint marcado con `export const prerender = false`
+
+### 🔧 Pasos para Resolver el Error en Vercel
+
+Si el error persiste después del despliegue, sigue estos pasos:
+
+**1. Limpiar caché de Vercel:**
+   - Ve a tu proyecto en Vercel Dashboard
+   - Settings → General → Scroll down
+   - Click en "Clear Build Cache & Redeploy"
+
+**2. Verificar variables de entorno:**
+   - Settings → Environment Variables
+   - Asegúrate que estén definidas para todos los entornos
+
+**3. Forzar redespliegue:**
+   ```bash
+   git commit --allow-empty -m "Force redeploy"
+   git push origin main
+   ```
 
 ## 📋 Pasos para Desplegar
 

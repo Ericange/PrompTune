@@ -1,0 +1,6 @@
+{
+    "buildCommand": "npm run build",
+    "framework": "astro",
+    "cleanUrls": true,
+    "trailingSlash": false
+}
