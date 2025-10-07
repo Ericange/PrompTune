@@ -1,5 +1,5 @@
-import { ai as NOOP_MIDDLEWARE_HEADER, aj as REDIRECT_STATUS_CODES, A as AstroError, ak as ActionsReturnedInvalidDataError, Q as DEFAULT_404_COMPONENT } from './astro/server_Wm9U9Z1f.mjs';
-import { parse, stringify } from 'devalue';
+import { N as NOOP_MIDDLEWARE_HEADER, D as DEFAULT_404_COMPONENT } from './astro/server_CEWY_R4y.mjs';
+import { parse } from 'devalue';
 import { escape } from 'html-escaper';
 
 const NOOP_MIDDLEWARE_FN = async (_ctx, next) => {
@@ -8,53 +8,26 @@ const NOOP_MIDDLEWARE_FN = async (_ctx, next) => {
   return response;
 };
 
-const ACTION_QUERY_PARAMS$1 = {
-  actionName: "_action"};
-const ACTION_RPC_ROUTE_PATTERN = "/_actions/[...path]";
+const ACTION_QUERY_PARAMS = {
+  actionName: "_astroAction"};
 
 const __vite_import_meta_env__ = {"ASSETS_PREFIX": undefined, "BASE_URL": "/", "DEV": false, "MODE": "production", "PROD": true, "SITE": undefined, "SSR": true};
-const ACTION_QUERY_PARAMS = ACTION_QUERY_PARAMS$1;
 const codeToStatusMap = {
-  // Implemented from IANA HTTP Status Code Registry
-  // https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
+  // Implemented from tRPC error code table
+  // https://trpc.io/docs/server/error-handling#error-codes
   BAD_REQUEST: 400,
   UNAUTHORIZED: 401,
-  PAYMENT_REQUIRED: 402,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
-  METHOD_NOT_ALLOWED: 405,
-  NOT_ACCEPTABLE: 406,
-  PROXY_AUTHENTICATION_REQUIRED: 407,
-  REQUEST_TIMEOUT: 408,
+  TIMEOUT: 405,
   CONFLICT: 409,
-  GONE: 410,
-  LENGTH_REQUIRED: 411,
   PRECONDITION_FAILED: 412,
-  CONTENT_TOO_LARGE: 413,
-  URI_TOO_LONG: 414,
+  PAYLOAD_TOO_LARGE: 413,
   UNSUPPORTED_MEDIA_TYPE: 415,
-  RANGE_NOT_SATISFIABLE: 416,
-  EXPECTATION_FAILED: 417,
-  MISDIRECTED_REQUEST: 421,
   UNPROCESSABLE_CONTENT: 422,
-  LOCKED: 423,
-  FAILED_DEPENDENCY: 424,
-  TOO_EARLY: 425,
-  UPGRADE_REQUIRED: 426,
-  PRECONDITION_REQUIRED: 428,
   TOO_MANY_REQUESTS: 429,
-  REQUEST_HEADER_FIELDS_TOO_LARGE: 431,
-  UNAVAILABLE_FOR_LEGAL_REASONS: 451,
-  INTERNAL_SERVER_ERROR: 500,
-  NOT_IMPLEMENTED: 501,
-  BAD_GATEWAY: 502,
-  SERVICE_UNAVAILABLE: 503,
-  GATEWAY_TIMEOUT: 504,
-  HTTP_VERSION_NOT_SUPPORTED: 505,
-  VARIANT_ALSO_NEGOTIATES: 506,
-  INSUFFICIENT_STORAGE: 507,
-  LOOP_DETECTED: 508,
-  NETWORK_AUTHENTICATION_REQUIRED: 511
+  CLIENT_CLOSED_REQUEST: 499,
+  INTERNAL_SERVER_ERROR: 500
 };
 const statusToCodeMap = Object.entries(codeToStatusMap).reduce(
   // reverse the key-value pairs
@@ -121,63 +94,8 @@ class ActionInputError extends ActionError {
   }
 }
 function getActionQueryString(name) {
-  const searchParams = new URLSearchParams({ [ACTION_QUERY_PARAMS$1.actionName]: name });
+  const searchParams = new URLSearchParams({ [ACTION_QUERY_PARAMS.actionName]: name });
   return `?${searchParams.toString()}`;
-}
-function serializeActionResult(res) {
-  if (res.error) {
-    if (Object.assign(__vite_import_meta_env__, {})?.DEV) {
-      actionResultErrorStack.set(res.error.stack);
-    }
-    let body2;
-    if (res.error instanceof ActionInputError) {
-      body2 = {
-        type: res.error.type,
-        issues: res.error.issues,
-        fields: res.error.fields
-      };
-    } else {
-      body2 = {
-        ...res.error,
-        message: res.error.message
-      };
-    }
-    return {
-      type: "error",
-      status: res.error.status,
-      contentType: "application/json",
-      body: JSON.stringify(body2)
-    };
-  }
-  if (res.data === void 0) {
-    return {
-      type: "empty",
-      status: 204
-    };
-  }
-  let body;
-  try {
-    body = stringify(res.data, {
-      // Add support for URL objects
-      URL: (value) => value instanceof URL && value.href
-    });
-  } catch (e) {
-    let hint = ActionsReturnedInvalidDataError.hint;
-    if (res.data instanceof Response) {
-      hint = REDIRECT_STATUS_CODES.includes(res.data.status) ? "If you need to redirect when the action succeeds, trigger a redirect where the action is called. See the Actions guide for server and client redirect examples: https://docs.astro.build/en/guides/actions." : "If you need to return a Response object, try using a server endpoint instead. See https://docs.astro.build/en/guides/endpoints/#server-endpoints-api-routes";
-    }
-    throw new AstroError({
-      ...ActionsReturnedInvalidDataError,
-      message: ActionsReturnedInvalidDataError.message(String(e)),
-      hint
-    });
-  }
-  return {
-    type: "data",
-    status: 200,
-    contentType: "application/json+devalue",
-    body
-  };
 }
 function deserializeActionResult(res) {
   if (res.type === "error") {
@@ -193,7 +111,7 @@ function deserializeActionResult(res) {
         })
       };
     }
-    if (Object.assign(__vite_import_meta_env__, {})?.PROD) {
+    if (Object.assign(__vite_import_meta_env__, { OS: process.env.OS })?.PROD) {
       return { error: ActionError.fromJson(json), data: void 0 };
     } else {
       const error = ActionError.fromJson(json);
@@ -214,7 +132,7 @@ function deserializeActionResult(res) {
     error: void 0
   };
 }
-const actionResultErrorStack = /* @__PURE__ */ (function actionResultErrorStackFn() {
+const actionResultErrorStack = /* @__PURE__ */ function actionResultErrorStackFn() {
   let errorStack;
   return {
     set(stack) {
@@ -224,7 +142,7 @@ const actionResultErrorStack = /* @__PURE__ */ (function actionResultErrorStackF
       return errorStack;
     }
   };
-})();
+}();
 
 function template({
   title,
@@ -329,15 +247,14 @@ const DEFAULT_404_ROUTE = {
   component: DEFAULT_404_COMPONENT,
   generate: () => "",
   params: [],
-  pattern: /^\/404\/?$/,
+  pattern: /\/404/,
   prerender: false,
   pathname: "/404",
   segments: [[{ content: "404", dynamic: false, spread: false }]],
   type: "page",
   route: "/404",
   fallbackRoutes: [],
-  isIndex: false,
-  origin: "internal"
+  isIndex: false
 };
 function ensure404Route(manifest) {
   if (!manifest.routes.some((route) => route.route === "/404")) {
@@ -353,7 +270,7 @@ async function default404Page({ pathname }) {
       tabTitle: "404: Not Found",
       pathname
     }),
-    { status: 404, headers: { "Content-Type": "text/html" } }
+    { status: 404, headers: { "Content-Type": "text/html; charset=utf-8" } }
   );
 }
 default404Page.isAstroComponentFactory = true;
@@ -361,4 +278,4 @@ const default404Instance = {
   default: default404Page
 };
 
-export { ActionError as A, DEFAULT_404_ROUTE as D, NOOP_MIDDLEWARE_FN as N, ACTION_RPC_ROUTE_PATTERN as a, ACTION_QUERY_PARAMS as b, default404Instance as c, deserializeActionResult as d, ensure404Route as e, getActionQueryString as g, serializeActionResult as s };
+export { DEFAULT_404_ROUTE as D, NOOP_MIDDLEWARE_FN as N, default404Instance as a, deserializeActionResult as d, ensure404Route as e, getActionQueryString as g };
